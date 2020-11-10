@@ -216,17 +216,27 @@ int main() {
 				
 				if (!string_starts_with(line, string_lit("@@"))) break;
 				
-				int line_number = 0, line_count = 0, dummy = 0;
-				sscanf(line.data, "@@ %d,%d %d,%d @@", &dummy, &dummy, &line_number, &line_count);
+				
+				int old_lines_count = 0;
+				int new_lines_count = 0;
+				int old_line_number = 0;
+				int new_line_number = 0;
+				
+				sscanf(line.data, "@@ %d,%d %d,%d @@", &old_line_number, &old_lines_count, &new_line_number, &new_lines_count);
 				
 				String_Contains contain;
 				contain.index = 0;
 				
-				for (int line_index = 0; line_index < line_count; ++line_index) {
+				int old_lines_counter = 0;
+				int new_lines_counter = 0;
+				while (trav_continue(&t) && (old_lines_counter < old_lines_count || new_lines_counter < new_lines_count )) {
 					line = trav_get_line(&t);
 					
 					int invalid_count = 0;
-					if (string_starts_with(line, string_lit("+"))) {
+					
+					if (line.data[0] == '+') {
+						new_lines_counter += 1;
+						
 						line.data += 1;
 						line.count -= 1;
 						
@@ -245,6 +255,11 @@ int main() {
 							invalid_count += 1;
 							contain.index += key.count;
 						}
+					} else if (line.data[0] == '-') {
+						old_lines_counter += 1;
+					} else {
+						new_lines_counter += 1;
+						old_lines_counter += 1;
 					}
 					
 					if (invalid_count) {
@@ -256,7 +271,7 @@ int main() {
 						printf("\n");
 						reset_color();
 						
-						printf("\t Line %d: ", line_count + line_index);
+						printf("\t Line %d: ", new_line_number + new_lines_counter);
 						
 						String part;
 						uint start = 0;
