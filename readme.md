@@ -6,10 +6,10 @@
 - The deault key is `nocheckin`
 
 ## How to use it?
-Either use the prebuild binaries present in `build` directory or build it using the scripts present in the repo (build.bat for windows, build.sh or buildgcc.sh for linux). Then place the `precommit` file in `.git/hooks` directory of your repository where you want to preform the scan
+Either use the prebuild binaries present in `build` directory or build it using the scripts present in the repo (build.bat for windows, build.sh or buildgcc.sh for linux). Then place the `pre-commit` executable file in `.git/hooks` directory of your repository where you want to preform the scan
 
 ## How to change the key?
-In the source `prebuild.cpp`, line 55:
+In the source `precommit.cpp`, line 55:
 ```cpp
 const char KEY[] = "nocheckin";
 ```

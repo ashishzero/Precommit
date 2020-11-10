@@ -5,10 +5,10 @@ mkdir -p build
 if [ $1 = '-r' ]
 then
 	compilerFlags=-W3 -Od
-	nameOfExe=precommit-debug
+	nameOfExe=pre-commit-debug
 else
 	compilerFlags=-W3 -O3
-	nameOfExe=precommit
+	nameOfExe=pre-commit
 fi
 
 echo Compiling...

@@ -192,6 +192,8 @@ int main() {
     pclose(fp);
     
     String string = read_entire_file(tmpf);
+	
+	string_print(string);
     
 	int status = 0;
 	
