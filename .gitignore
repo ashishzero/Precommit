@@ -3,3 +3,5 @@ bin/
 *.ilk
 *.pdb
 precommit-debug.exe
+precommit-debug
+
