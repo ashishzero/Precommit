@@ -25,8 +25,6 @@ ECHO "Compiling..."
 
 SET SourceFiles=precommit.cpp
 
-rem PUSHD 
 cl  %CompilerFlags% /Fe.\build\%NameOfEXE% %SourceFiles%
-rem POPD
 
 ECHO "Build finished."
