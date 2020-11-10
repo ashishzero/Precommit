@@ -58,7 +58,7 @@ const char *CMD = "git diff --cached";
 typedef unsigned int uint;
 
 #define static_count(a) (sizeof(a) / sizeof((a)[0]))
-#define string_lit(s) String { (uint)(sizeof(s) - 1), s }
+#define string_lit(s) String { (uint)(sizeof(s) - 1), (char *)s }
 
 struct String {
     uint count;

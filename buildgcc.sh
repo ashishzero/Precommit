@@ -2,17 +2,20 @@
 
 mkdir -p build
 
-if [ $1 = '-r' ]
+if [ "$1" = "-r" ]
 then
-	compilerFlags=-W3 -Od
-	nameOfExe=precommit-debug
+	echo 'Compiling - Release...'
+	compilerFlags='-Wno-unused-result'
+	nameOfExe='precommit'
 else
-	compilerFlags=-W3 -O3
-	nameOfExe=precommit
+	echo 'Compiling - Debug...'
+	compilerFlags='-Wno-unused-result -O3'
+	nameOfExe='precommit-debug'
 fi
 
-echo Compiling...
-
-sourceFiles=precommit.cpp
+sourceFiles='precommit.cpp'
 
 g++ $compilerFlags $sourceFiles -o build/$nameOfExe
+
+echo 'Finished.'
+
