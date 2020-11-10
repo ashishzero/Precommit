@@ -257,9 +257,7 @@ int main() {
 						reset_color();
 						
 						printf("\t Line %d: ", line_count + line_index);
-#if 0
-						string_print(line);
-#else
+						
 						String part;
 						uint start = 0;
 						for (int index = 0; index < invalid_count; ++index) {
@@ -284,7 +282,6 @@ int main() {
 						
 						string_print(part);
 						printf("\n");
-#endif
 					}
 				}
 			}
