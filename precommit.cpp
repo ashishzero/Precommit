@@ -193,8 +193,6 @@ int main() {
     
     String string = read_entire_file(tmpf);
 	
-	string_print(string);
-    
 	int status = 0;
 	
     Trav t;
@@ -250,7 +248,7 @@ int main() {
 					}
 					
 					if (invalid_count) {
-						status = 1;
+						status = -1;
 						
 						set_red_color();
 						printf("Error: Invalid content. File: ");
