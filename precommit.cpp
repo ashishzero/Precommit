@@ -3,305 +3,211 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <stdint.h>
+
+#define Assert assert
 
 #if defined(_WIN32) || defined(_WIN64)
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#include <windows.h>
-
 #define popen _popen
 #define pclose _pclose
-
-static WORD global_win32_old_color_attrs;
-
-void set_red_color() {
-	HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
-	CONSOLE_SCREEN_BUFFER_INFO info;
-	GetConsoleScreenBufferInfo(h, &info);
-	global_win32_old_color_attrs = info.wAttributes;
-	SetConsoleTextAttribute(h, FOREGROUND_RED);
-}
-
-void set_yellow_color() {
-	HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
-	CONSOLE_SCREEN_BUFFER_INFO info;
-	GetConsoleScreenBufferInfo(h, &info);
-	global_win32_old_color_attrs = info.wAttributes;
-	SetConsoleTextAttribute(h, FOREGROUND_RED | FOREGROUND_GREEN);
-}
-
-void reset_color() {
-	HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
-	SetConsoleTextAttribute(h, global_win32_old_color_attrs);
-}
-
-#else
-
-void set_red_color() {
-	printf("\033[0;31m");
-}
-
-void set_yellow_color() {
-	printf("\033[01;33m");
-}
-
-void reset_color() {
-	printf("\033[0m");
-}
-
 #endif
 
-const char KEY[] = "nocheckin";
-const char *CMD = "git diff --cached";
-
-typedef unsigned int uint;
-
-#define static_count(a) (sizeof(a) / sizeof((a)[0]))
-#define string_lit(s) String { (uint)(sizeof(s) - 1), (char *)s }
+#define ArrayCount(a) (sizeof(a) / sizeof((a)[0]))
+#define Minimum(a, b) (((a) < (b)) ? (a) : (b))
+#define Maximum(a, b) (((a) > (b)) ? (a) : (b))
+#define Clamp(a, b, v) Minimum(b, Maximum(a, v))
 
 struct String {
-    uint count;
-    char *data;
+	ptrdiff_t length;
+	uint8_t * data;
+
+	String() : data(0), length(0) {}
+	template <ptrdiff_t _Length>
+	constexpr String(const char(&a)[_Length]) : data((uint8_t *)a), length(_Length - 1) {}
+	String(const uint8_t *_Data, ptrdiff_t _Length) : data((uint8_t *)_Data), length(_Length) {}
+	String(const char *_Data, ptrdiff_t _Length) : data((uint8_t *)_Data), length(_Length) {}
+	const uint8_t &operator[](const ptrdiff_t index) const { Assert(index < length); return data[index]; }
+	uint8_t &operator[](const ptrdiff_t index) { Assert(index < length); return data[index]; }
+	inline uint8_t *begin() { return data; }
+	inline uint8_t *end() { return data + length; }
+	inline const uint8_t *begin() const { return data; }
+	inline const uint8_t *end() const { return data + length; }
 };
 
-String read_entire_file(FILE *fp) {
-    fseek(fp, 0, SEEK_END);
-    long fsize = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
-    
-    char *ptr = (char *)malloc(fsize + 1);
-    fread(ptr, 1, fsize, fp);
-    ptr[fsize] = 0;
-    
-    String string;
-    string.count = fsize;
-    string.data = ptr;
-    
-    return string;
+static String StrRemovePrefix(String str, ptrdiff_t count) {
+	Assert(str.length >= count);
+	str.data += count;
+	str.length -= count;
+	return str;
 }
 
-struct Trav {
-    String string;
-    uint current;
-};
-
-bool trav_continue(Trav *t) {
-    return t->current < t->string.count;
+static String SubStr(String str, ptrdiff_t index, ptrdiff_t count) {
+	Assert(index < str.length);
+	count = (ptrdiff_t)Minimum(str.length - index, count);
+	return String(str.data + index, count);
 }
 
-String trav_get_line(Trav *t) {
-    String line;
-    line.data = t->string.data + t->current;
-    line.count = 0;
-    
-    char *p = t->string.data + t->current;
-    
-    while (*p) {
-        if (*p == '\n' || *p == '\r') {
-            if (*p == '\r' && *(p + 1) == '\n') {
-                t->current += 1;
-            }
-            t->current += 1;
-			break;
-        }
-        
-        line.count += 1;
-        p += 1;
-        t->current += 1;
-    }
-    
-    return line;
+static int StrCompare(String a, String b) {
+	ptrdiff_t count = (ptrdiff_t)Minimum(a.length, b.length);
+	return memcmp(a.data, b.data, count);
 }
 
-bool string_starts_with(String a, String b) {
-    if (a.count < b.count) return false;
-    
-	for (uint i = 0; i < b.count; ++i) {
-		if (a.data[i] != b.data[i]) return false;
-	}
-    
-	return true;
-}
-
-bool string_match(String a, String b) {
-	if (a.count != b.count) return false;
-	
-	for (uint i = 0; i < a.count; ++i) {
-		if (a.data[i] != b.data[i]) return false;
-	}
-	
-	return true;
-}
-
-struct String_Contains {
-	bool found;
-	uint index;
-};
-
-String_Contains string_contains(String string, String item, uint index) {
-	String_Contains result;
-	result.found = false;
-	result.index = 0;
-	
-	if (string.count - index >= item.count) {
-		uint end = string.count - index - item.count + 1;
-		for (uint i = 0; i < end; ++i) {
-			String matcher;
-			matcher.data  = string.data + index + i;
-			matcher.count = item.count;
-			if (string_match(matcher, item)) {
-				result.found = true;
-				result.index = index + i;
-				return result;
-			}
+static int StrCompareCaseInsensitive(String a, String b) {
+	ptrdiff_t count = (ptrdiff_t)Minimum(a.length, b.length);
+	for (ptrdiff_t index = 0; index < count; ++index) {
+		if (a.data[index] != b.data[index] && a.data[index] + 32 != b.data[index] && a.data[index] != b.data[index] + 32) {
+			return a.data[index] - b.data[index];
 		}
 	}
-	
-	return result;
+	return 0;
 }
 
-void string_print(String a) {
-    char *p = a.data;
-	for (uint i = 0; i < a.count; ++i) {
-        putchar(*p);
-        p += 1;
+static bool StrMatch(String a, String b) {
+	if (a.length != b.length)
+		return false;
+	return StrCompare(a, b) == 0;
+}
+
+static bool StrMatchCaseInsensitive(String a, String b) {
+	if (a.length != b.length)
+		return false;
+	return StrCompareCaseInsensitive(a, b) == 0;
+}
+
+static bool StrStartsWith(String str, String sub) {
+	if (str.length < sub.length)
+		return false;
+	return StrCompare(String(str.data, sub.length), sub) == 0;
+}
+
+static ptrdiff_t StrFindCaseInsensitive(String str, String key, ptrdiff_t pos) {
+	ptrdiff_t index = Clamp(0, str.length - 1, pos);
+	while (str.length >= key.length) {
+		if (StrCompare(String(str.data, key.length), key) == 0) {
+			return index;
+		}
+		index += 1;
+		str = StrRemovePrefix(str, 1);
 	}
+	return -1;
 }
 
+static String ReadEntireFile(FILE *fp) {
+	fseek(fp, 0, SEEK_END);
+	long fsize = ftell(fp);
+	fseek(fp, 0, SEEK_SET);
+
+	char *ptr = (char *)malloc(fsize + 1);
+	fread(ptr, 1, fsize, fp);
+	ptr[fsize] = 0;
+
+	String string;
+	string.length = (ptrdiff_t)fsize;
+	string.data   = (uint8_t *)ptr;
+
+	return string;
+}
+
+/*
 static const uint BUFF_SIZE = 1024 * 1024;
 static const uint MAX_INVALID_COUNT = 1024;
 static uint invalids[MAX_INVALID_COUNT];
+*/
 
-int main() {
-    FILE* tmpf = tmpfile();
-    
-    FILE *fp;
-    if ((fp = popen(CMD, "r")) == NULL) {
-        printf("Error: git could not be opened\n");
-        return 0;
-    }
-	
-	char *buffer = (char *)malloc(BUFF_SIZE);
-    
-    while(fgets(buffer, BUFF_SIZE, fp))
-    {
-        fputs(buffer, tmpf);
-    }
-    
-    pclose(fp);
-    
-    String string = read_entire_file(tmpf);
-	
-	int status = 0;
-	
-    Trav t;
-    t.string = string;
-    t.current = 0;
-	
-	String key;
-	key.count = static_count(KEY) - 1;
-	key.data = (char *)KEY;
-    
-	String line;
-    while (trav_continue(&t)) {
-        line = trav_get_line(&t);
-        if (string_starts_with(line, string_lit("+++"))) {
-			String file_name = line;
-			file_name.data += 6;
-			file_name.count -= 6;
-			
-			while (trav_continue(&t)) {
-				line = trav_get_line(&t);
-				
-				if (!string_starts_with(line, string_lit("@@"))) break;
-				
-				
-				int old_lines_count = 0;
-				int new_lines_count = 0;
-				int old_line_number = 0;
-				int new_line_number = 0;
-				
-				sscanf(line.data, "@@ %d,%d %d,%d @@", &old_line_number, &old_lines_count, &new_line_number, &new_lines_count);
-				
-				String_Contains contain;
-				contain.index = 0;
-				
-				int old_lines_counter = 0;
-				int new_lines_counter = 0;
-				while (trav_continue(&t) && (old_lines_counter < old_lines_count || new_lines_counter < new_lines_count )) {
-					line = trav_get_line(&t);
-					
-					int invalid_count = 0;
-					
-					if (line.data[0] == '+') {
-						new_lines_counter += 1;
-						
-						line.data += 1;
-						line.count -= 1;
-						
-						while (true) {
-							contain = string_contains(line, key, contain.index);
-							if (!contain.found || invalid_count == MAX_INVALID_COUNT) break;
-							
-							if (contain.index > 0 && contain.index + key.count < line.count) {
-								if (line.data[contain.index - 1] == '"' && line.data[contain.index + key.count] == '"') {
-									contain.index += key.count;
-									continue;
-								}
-							}
-							
-							invalids[invalid_count] = contain.index;
-							invalid_count += 1;
-							contain.index += key.count;
-						}
-					} else if (line.data[0] == '-') {
-						old_lines_counter += 1;
-					} else {
-						new_lines_counter += 1;
-						old_lines_counter += 1;
-					}
-					
-					if (invalid_count) {
-						status = -1;
-						
-						set_red_color();
-						printf("Error: Invalid content. File: ");
-						string_print(file_name);
-						printf("\n");
-						reset_color();
-						
-						printf("\t Line %d: ", new_line_number + new_lines_counter);
-						
-						String part;
-						uint start = 0;
-						for (int index = 0; index < invalid_count; ++index) {
-							part.data = line.data + start;
-							part.count = invalids[index] - start;
-							
-							string_print(part);
-							
-							start = invalids[index];
-							part.data = line.data + start;
-							part.count = key.count;
-							
-							set_yellow_color();
-							string_print(part);
-							reset_color();
-							
-							start += key.count;
-						}
-						
-						part.data = line.data + start;
-						part.count = line.count - start;
-						
-						string_print(part);
-						printf("\n");
-					}
+struct Reader {
+	String    content;
+	ptrdiff_t position;
+	String    line;
+};
+
+static Reader ReaderInit(String content) {
+	Reader reader;
+	reader.content  = content;
+	reader.position = 0;
+	reader.line     = "";
+	return reader;
+}
+
+static bool NextLine(Reader *reader) {
+	if (reader->position < reader->content.length) {
+		ptrdiff_t position = reader->position;
+		for (; position < reader->content.length; ++position) {
+			if (reader->content[position] == '\n' || reader->content[position] == '\r') {
+				// Since content is null terminated, we can access position + 1
+				if (reader->content[position] == '\r' && reader->content.data[position + 1] == '\n') {
+					reader->line     = SubStr(reader->content, reader->position, position - reader->position);
+					reader->position = position + 2;
+				} else {
+					reader->line     = SubStr(reader->content, reader->position, position - reader->position);
+					reader->position = position + 1;
 				}
+				reader->line.data[reader->line.length] = 0;
+				return true;
 			}
 		}
+		reader->line     = SubStr(reader->content, reader->position, position - reader->position);
+		reader->position = position;
+		return true;
 	}
-	
-	return status;
+	return false;
+}
+
+static void ReportError(String filepath, int line_number, String line, String keyword) {
+	fprintf(stderr, "%.*s(%d): error : Keyword \"%.*s\" is present in the commit, which is not allowed.\n%.*s\n", 
+		(int)filepath.length, filepath.data, line_number, (int)keyword.length, keyword.data, (int)line.length, line.data);
+}
+
+int main() {
+	const String Keyword = "nocheckin";
+	const int MaxKeyword = 1024;
+
+	FILE* tmpf = tmpfile();
+
+	FILE *fp = popen("git diff --cached", "r");
+	if (!fp) {
+		printf("Error: git could not be opened\n");
+		return 1;
+	}
+
+	char buffer[16 * 1024];
+	while (fgets(buffer, sizeof(buffer), fp)) {
+		fputs(buffer, tmpf);
+	}
+	pclose(fp);
+
+	String string = ReadEntireFile(tmpf);
+
+	Reader reader = ReaderInit(string);
+
+	String filepath = "";
+	int line_number = 0;
+	int keywords = 0;
+
+	while (NextLine(&reader)) {
+		String line = reader.line;
+
+		if (StrStartsWith(line, "+++")) {
+			filepath = StrRemovePrefix(line, 6);
+			line_number = 0;
+		} else if (StrStartsWith(line, "@@")) {
+			int dummy = 0;
+			sscanf((char *)line.data, "@@ %d,%d %d,%d @@", &dummy, &dummy, &line_number, &dummy);
+		} else if (StrStartsWith(line, "+")) {
+			line = StrRemovePrefix(line, 1);
+
+			ptrdiff_t index = StrFindCaseInsensitive(line, Keyword, 0);
+			if (index >= 0) {
+				ReportError(filepath, line_number, line, Keyword);
+				keywords += 1;
+				if (keywords > MaxKeyword) {
+					break;
+				}
+			}
+			line_number += 1;
+		} else if (!StrStartsWith(line, "-")) {
+			line_number += 1;
+		}
+	}
+
+	return keywords;
 }
