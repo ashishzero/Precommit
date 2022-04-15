@@ -62,18 +62,6 @@ static int StrCompareCaseInsensitive(String a, String b) {
 	return 0;
 }
 
-static bool StrMatch(String a, String b) {
-	if (a.length != b.length)
-		return false;
-	return StrCompare(a, b) == 0;
-}
-
-static bool StrMatchCaseInsensitive(String a, String b) {
-	if (a.length != b.length)
-		return false;
-	return StrCompareCaseInsensitive(a, b) == 0;
-}
-
 static bool StrStartsWith(String str, String sub) {
 	if (str.length < sub.length)
 		return false;
@@ -83,7 +71,7 @@ static bool StrStartsWith(String str, String sub) {
 static ptrdiff_t StrFindCaseInsensitive(String str, String key, ptrdiff_t pos) {
 	ptrdiff_t index = Clamp(0, str.length - 1, pos);
 	while (str.length >= key.length) {
-		if (StrCompare(String(str.data, key.length), key) == 0) {
+		if (StrCompareCaseInsensitive(String(str.data, key.length), key) == 0) {
 			return index;
 		}
 		index += 1;
@@ -107,12 +95,6 @@ static String ReadEntireFile(FILE *fp) {
 
 	return string;
 }
-
-/*
-static const uint BUFF_SIZE = 1024 * 1024;
-static const uint MAX_INVALID_COUNT = 1024;
-static uint invalids[MAX_INVALID_COUNT];
-*/
 
 struct Reader {
 	String    content;
