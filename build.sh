@@ -22,7 +22,7 @@ echo '  echo Not a git root directory' >> install.sh
 echo '  exit 1' >> install.sh
 echo 'fi' >> install.sh
 echo 'echo "Installing pre-commit..."' >> install.sh
-echo 'echo cp -rf ""$pwd/bin/pre-commit"" ./.git/hooks/' >> install.sh
+echo 'echo cp -rf \"$pwd/bin/pre-commit\" ./.git/hooks/' >> install.sh
 echo 'echo "Installed."' >> install.sh
 
 echo 'Finished.'
