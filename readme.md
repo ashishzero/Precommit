@@ -1,16 +1,20 @@
 # Precommit
 
 ## What does this do?
-- Scans the new changes in the repository for a `KEY` and fails the commit if the `KEY` is present
-- If the `KEY` is in quotes, it passes the scan
-- The deault key is `nocheckin`
+
+Scans git commit contents for a specified `NocheckinKeyword`. If the `NocheckinKeyword` is found in the commit content, commit is disabled until the `NocheckinKeyword` is removed from the commit.
+
+The default value of `NocheckinKeyword` is `nocheckin` (case insensitive).
+
 
 ## How to use it?
-Either use the prebuild binaries present in `build` directory or build it using the scripts present in the repo (build.bat for windows, build.sh or buildgcc.sh for linux). Then place the `pre-commit` executable file in `.git/hooks` directory of your repository where you want to preform the scan
+1. Build the precommit by execting the `build` script
+2. Execute `install` script that is generated after building the precommit from your git repository (must be root directory)
 
-## How to change the key?
-In the source `precommit.cpp`, line 55:
-```cpp
-const char KEY[] = "nocheckin";
+
+## How to change the nocheckin keyword?
+
+Use the following command when building the precommit:
+```sh
+./build.sh -DNocheckinKeyword=\"my_keyword\"
 ```
-Change the `"nocheckin"` to the value you want and build the project.

@@ -1,30 +1,28 @@
 @ECHO OFF
 
-IF NOT EXIST "build" MKDIR "build"
+SET SourceFiles=precommit.c
+
 IF NOT EXIST "bin" MKDIR "bin"
-IF NOT EXIST "bin\debug" MKDIR "bin\debug"
-IF NOT EXIST "bin\release" MKDIR "bin\release"
 
-IF "%1" == "-r" GOTO release
-REM Defaults to debug mode if no argument is passed
-IF "%1" == "-d" GOTO debug
-
-REM Compiler flags for debug
-:debug
-SET CompilerFlags=/W3 /wd4514 /wd4668 /wd4201 /EHsc /Od /ZI /MTd /DBUILD_DEBUG /std:c++17 /Fo"bin\debug\\" /Fm"bin\debug\\" /Fd"bin\debug\vc.pdb"
+ECHO Compiling (debug)...
+SET CompilerFlags=/W3 /wd4514 /wd4668 /wd4201 /EHsc /Od /ZI /MTd /DBUILD_DEBUG /std:c11 /Fo"bin\\" /Fm"bin\\" /Fd"bin\vc.pdb"
 SET NameOfEXE=pre-commit-debug
-GOTO compile
+cl /nologo %CompilerFlags% %* /Fe.\bin\%NameOfEXE% %SourceFiles%
 
-:release
-SET CompilerFlags=/W3 /wd4514 /wd4668 /wd4201 /EHsc /O2 /Ox /MT /DBUILD_RELEASE /std:c++17 /Fo"bin\release\\" /Fm"bin\release\\" /Fd"bin\release\vc.pdb"
+ECHO Compiling (release)...
+SET CompilerFlags=/W3 /wd4514 /wd4668 /wd4201 /EHsc /O2 /Ox /MT /DBUILD_RELEASE /std:c11 /Fo"bin\\" /Fm"bin\\" /Fd"bin\release\vc.pdb"
 SET NameOfEXE=pre-commit
-GOTO compile
+cl /nologo %CompilerFlags% %* /Fe.\bin\%NameOfEXE% %SourceFiles%
 
-:compile
-ECHO "Compiling..."
+ECHO Generating installer...
+if EXIST "install.bat" DEL "install.bat"
+ECHO @ECHO OFF  >> "install.bat"
+ECHO IF NOT EXIST ".git\\hooks" ( >> "install.bat"
+ECHO 	ECHO Not a git root directory >> "install.bat"
+ECHO 	EXIT /b 1 >> "install.bat"
+ECHO ) >> "install.bat"
+ECHO ECHO Installing pre-commit... >> "install.bat"
+ECHO XCOPY "%~dp0%bin\\pre-commit.exe" ".\\.git\\hooks\\" /Y >> "install.bat"
+ECHO ECHO Installed. >> "install.bat"
 
-SET SourceFiles=precommit.cpp
-
-cl  %CompilerFlags% /Fe.\build\%NameOfEXE% %SourceFiles%
-
-ECHO "Build finished."
+ECHO Finished.

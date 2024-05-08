@@ -1,21 +1,28 @@
 #!/bin/sh
 
-mkdir -p build
+mkdir -p bin
 
-if [ "$1" = "-r" ]
-then
-	echo 'Compiling - Release...'
-	compilerFlags='-O3'
-	nameOfExe='pre-commit'
-else
-	echo 'Compiling - Debug...'
-	compilerFlags=''
-	nameOfExe='pre-commit-debug'
-fi
+sourceFiles='precommit.c'
 
-sourceFiles='precommit.cpp'
+echo 'Compiling (debug)...'
+compilerFlags=''
+nameOfExe='pre-commit-debug'
+CC $compilerFlags $sourceFiles -o build/$nameOfExe
 
-clang++ $compilerFlags $sourceFiles -o build/$nameOfExe
+echo 'Compiling (release)...'
+compilerFlags='-O3'
+nameOfExe='pre-commit'
+CC $compilerFlags $sourceFiles -o build/$nameOfExe
 
-echo Finished.
+echo 'Generating installer...'
+rm -f install.sh
+echo '#!/bin/sh' > install.sh
+echo 'if [ ! -d "./.git/hooks" ]; then' > install.sh
+echo '  echo Not a git root directory' > install.sh
+echo '  exit 1' > install.sh
+echo 'fi' > install.sh
+echo 'echo "Installing pre-commit..."' > install.sh
+echo 'echo cp -rf ""$pwd/bin/pre-commit"" ./.git/hooks/' > install.sh
+echo 'echo "Installed." > install.sh
 
+echo 'Finished.'
