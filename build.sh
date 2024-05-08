@@ -7,12 +7,12 @@ sourceFiles='precommit.c'
 echo 'Compiling (debug)...'
 compilerFlags=''
 nameOfExe='pre-commit-debug'
-$CC $compilerFlags $sourceFiles -o build/$nameOfExe
+$CC $compilerFlags $sourceFiles -o bin/$nameOfExe
 
 echo 'Compiling (release)...'
 compilerFlags='-O3'
 nameOfExe='pre-commit'
-$CC $compilerFlags $sourceFiles -o build/$nameOfExe
+$CC $compilerFlags $sourceFiles -o bin/$nameOfExe
 
 echo 'Generating installer...'
 rm -f install.sh

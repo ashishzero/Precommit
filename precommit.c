@@ -29,8 +29,10 @@ static char *read_entire_file(FILE *fp, size_t *count) {
 	fseek(fp, 0, SEEK_SET);
 
 	char *ptr = (char *)malloc(fsize + 1);
-	fread(ptr, 1, fsize, fp);
+	size_t bytes_read = fread(ptr, 1, fsize, fp);
 	ptr[fsize] = 0;
+
+	(void)bytes_read;
 
 	*count = (size_t)fsize;
 
