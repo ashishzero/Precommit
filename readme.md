@@ -9,7 +9,7 @@ The default value of `NocheckinKeyword` is `nocheckin` (case insensitive).
 
 ## How to use it?
 1. Build the precommit by execting the `build` script
-2. Execute `install` script that is generated after building the precommit from your git repository (must be root directory)
+2. Execute `install` script from your root git directory (install script is generated after execution of build script)
 
 
 ## How to change the nocheckin keyword?
