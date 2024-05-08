@@ -13,8 +13,13 @@ The default value of `NocheckinKeyword` is `nocheckin` (case insensitive).
 
 
 ## How to change the nocheckin keyword?
+1. Create a file named `keyword.h` and add the following content:
 
-Use the following command when building the precommit:
-```sh
-./build.sh -DNocheckinKeyword=\"my_keyword\"
+```h
+#define NocheckinKeyword "my_no_checkin"
 ```
+
+2. Build (rebuild) and install (reinstall) the precommit
+
+## How to remove the precommit?
+Simply delete the executable `.gits/hooks/pre-commit` from your git repository.
